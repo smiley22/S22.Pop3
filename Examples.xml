@@ -1,0 +1,142 @@
+<S22>
+	<Pop3>
+		<Pop3Client name="ctor-1">
+			<example>
+				This example shows how to establish a connection with a POP3 server
+				and print out the POP3 options, which the server supports.
+				<code>
+					/* Connect to AOL's POP3 server */
+					Pop3Client Client = new Pop3Client("pop.aol.com");
+
+					/* Print out the server's capabilities. */
+					foreach(string s in Client.Capabilities())
+						Console.WriteLine(s);
+
+					Client.Dispose();
+				</code>
+			</example>
+		</Pop3Client>
+
+		<Pop3Client name="ctor-2">
+			<example>
+				This example demonstrates how to establish a secure connection, login
+				to a POP3 server and check for new messages.
+				<code>
+					/* Connect to Gmail's POP3 server on port 995 using SSL */
+					try {
+						Pop3Client Client = new Pop3Client("pop.gmail.com", 995, "My_Username",
+							"My_Password", true, AuthMethod.Login);
+							
+						MessageInfo[] info = Client.GetStatus();
+						if(info.Length > 0)
+							Console.WriteLine(info.Length + " new messages");
+						else
+							Console.WriteLine("No new messages");
+
+						Client.Dispose();
+					}
+					catch(InvalidCredentialsException) {
+						Console.WriteLine("The server rejected the supplied credentials");
+					}
+				</code>
+			</example>
+		</Pop3Client>
+
+		<Pop3Client name="Login">
+			<example>
+				This example demonstrates how to authenticate with a POP3 server once a connection
+				has been established. Notice that you can also connect and login in one step
+				using one of the overloaded constructors. 
+				<code>
+					/* Connect to Gmail's POP3 server on port 995 using SSL */
+					Pop3Client Client = new Pop3Client("pop.gmail.com", 995, true);
+
+					try {
+						Client.Login("My_Username", "My_Password", AuthMethod.Login);
+					}
+					catch(InvalidCredentialsException) {
+						Console.WriteLine("The server rejected the supplied credentials");
+					}
+					
+					Client.Dispose();
+				</code>
+			</example>
+		</Pop3Client>
+			
+		<Pop3Client name="GetStatus">
+			<example>
+				<code>
+					Pop3Client Client = new Pop3Client("pop.gmail.com", 995, "My_UsernamMe",
+						"My_Password", true, AuthMethod.Login);
+
+					MessageInfo[] info = Client.GetStatus();
+					
+					foreach(MessageInfo i in info)
+					{
+						Console.WriteLine("New message in inbox with messageNumber = " + i.Number +
+							", size in bytes = " + i.Size);
+					}
+					
+					Client.Dispose();
+				</code>
+			</example>
+		</Pop3Client>	
+		
+		<Pop3Client name="GetMessage">
+			<example>
+				<code>
+					Pop3Client Client = new Pop3Client("pop.gmail.com", 995, "My_Username",
+						"My_Password", true, AuthMethod.Login);
+						
+					MessageInfo[] info = Client.GetStatus();
+					
+					/* download the first message and print its subject line */
+					if(info.Length > 0)
+					{
+						MailMessage message = Client.GetMessage(info[0].Number);
+						Console.WriteLine("Subject: " + message.Subject);
+					}
+					
+					Client.Dispose();
+				</code>
+			</example>			
+			<example>
+				This example demonstrates how to retrieve only the mail message headers of
+				a mail message, instead of retrieving the entire message.
+				<code>
+					Pop3Client Client = new Pop3Client("pop.gmail.com", 995, "My_Username",
+						"My_Password", true, AuthMethod.Login);
+						
+					MessageInfo[] info = Client.GetStatus();
+					
+					/* download the first message's headers and print its subject line */
+					if(info.Length > 0)
+					{
+						MailMessage message = Client.GetMessage(info[0].Number, FetchOptions.HeadersOnly);
+						Console.WriteLine("Subject: " + message.Subject);
+					}
+					
+					Client.Dispose();
+				</code>
+			</example>
+		</Pop3Client>
+
+		<Pop3Client name="GetMessages">
+			<example>
+				<code>
+					Pop3Client Client = new Pop3Client("pop.gmail.com", 995, "My_Username",
+						"My_Password", true, AuthMethod.Login);
+						
+					/* Download all new messages from the server */
+					MailMessages messages[] = Client.GetMessages();
+
+					/* Print out each message's subject line */
+					foreach(MailMessage m in messages)
+						Console.WriteLine("Subject: " + m.Subject);
+
+					Client.Dispose();
+				</code>
+			</example>
+		</Pop3Client>
+	</Pop3>
+</S22>
