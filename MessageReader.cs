@@ -81,7 +81,7 @@ namespace S22.Pop3 {
 				if (response[0] == ' ' || response[0] == '\t') {
 					if (fieldname != null) {
 						header[fieldname] = header[fieldname] +
-							response.Substring(1).Trim();
+							response.Substring(1).TrimEnd();
 					}
 					continue;
 				}
@@ -121,14 +121,18 @@ namespace S22.Pop3 {
 		/// can contain multiple email addresses.
 		/// </summary>
 		/// <param name="list">The address-list field to parse</param>
-		/// <returns>An array of strings containing the parsed mail
-		/// addresses.</returns>
-		private string[] ParseAddressList(string list) {
-			List<string> mails = new List<string>();
-			MatchCollection matches = Regex.Matches(list,
-				@"\b([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})\b", RegexOptions.IgnoreCase);
-			foreach (Match m in matches)
-				mails.Add(m.Groups[1].Value);
+		/// <returns>An array of MailAddress objects representing the parsed
+		/// mail addresses.</returns>
+		private static MailAddress[] ParseAddressList(string list) {
+			List<MailAddress> mails = new List<MailAddress>();
+			string[] addr = list.Split(',');
+			foreach (string a in addr) {
+				Match m = Regex.Match(a.Trim(),
+					@"(.*)\s*<?([A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4})>?",
+					RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+				if (m.Success)
+					mails.Add(new MailAddress(m.Groups[2].Value, m.Groups[1].Value));
+			}
 			return mails.ToArray();
 		}
 
@@ -220,14 +224,16 @@ namespace S22.Pop3 {
 			MailMessage m = new MailMessage();
 			NameValueCollection contentType = ParseMIMEField(
 				header["Content-Type"]);
-			/* NameValueCollection throws an exception if adding an empty string as
-			 * value which can happen, if reading a mail message with an empty subject
-			 * for instance
-			 */
 			foreach (string key in header) {
 				string value = header.GetValues(key)[0];
-				if (value != String.Empty)
+				try {
 					m.Headers.Add(key, value);
+				} catch {
+					// HeaderCollection throws an exception if adding an empty string as
+					// value, which can happen, if reading a mail message with an empty
+					// subject.
+					// Also spammers often forge headers, so just fall through and ignore.
+				}
 			}
 			if (parts != null) {
 				/* This takes care of setting the Body, BodyEncoding and IsBodyHtml fields also */
@@ -248,22 +254,34 @@ namespace S22.Pop3 {
 				m.SubjectEncoding = Encoding.ASCII;
 				m.Subject = header["Subject"];
 			}
-			m.Priority = header["Priority"] != null ?
-				PriorityMapping[header["Priority"]] : MailPriority.Normal;			
+			m.Priority = ParsePriority(header["Priority"]);		
 			SetAddressFields(m, header);
 			return m;
 		}
 
 		/// <summary>
-		/// A mapping to map MIME priority values to their MailPriority enum
-		/// counterparts.
+		/// Parses the priority of a mail message which can be specified
+		/// as part of the header information.
 		/// </summary>
-		static private Dictionary<string, MailPriority> PriorityMapping =
-			new Dictionary<string, MailPriority>(StringComparer.OrdinalIgnoreCase) {
-				{ "non-urgent", MailPriority.Low },
-				{ "normal",	MailPriority.Normal },
-				{ "urgent",	MailPriority.High }
-			};
+		/// <param name="priority">The mail header priority value. The value
+		/// can be null in which case a "normal priority" is returned.</param>
+		/// <returns>A value from the MailPriority enumeration corresponding to
+		/// the specified mail priority. If the passed priority value is null
+		/// or invalid, a normal priority is assumed and MailPriority.Normal
+		/// is returned.</returns>
+		private static MailPriority ParsePriority(string priority) {
+			Dictionary<string, MailPriority> Map =
+				new Dictionary<string, MailPriority>(StringComparer.OrdinalIgnoreCase) {
+						{ "non-urgent", MailPriority.Low },
+						{ "normal",	MailPriority.Normal },
+						{ "urgent",	MailPriority.High }
+				};
+			try {
+				return Map[priority];
+			} catch {
+				return MailPriority.Normal;
+			}
+		}
 
 		/// <summary>
 		/// Sets the address fields (From, To, CC, etc.) of a MailMessage
@@ -272,31 +290,33 @@ namespace S22.Pop3 {
 		/// <param name="m">The MailMessage instance to operate on</param>
 		/// <param name="header">A collection of mail and MIME headers</param>
 		private void SetAddressFields(MailMessage m, NameValueCollection header) {
-			string[] addr = ParseAddressList(header["To"]);
-			foreach (string s in addr)
-				m.To.Add(s);
+			MailAddress[] addr = ParseAddressList(header["To"]);
+			foreach (MailAddress a in addr)
+				m.To.Add(a);
 			if (header["Cc"] != null) {
 				addr = ParseAddressList(header["Cc"]);
-				foreach (string s in addr)
-					m.CC.Add(s);
+				foreach (MailAddress a in addr)
+					m.CC.Add(a);
 			}
 			if (header["Bcc"] != null) {
 				addr = ParseAddressList(header["Bcc"]);
-				foreach (string s in addr)
-					m.Bcc.Add(s);
+				foreach (MailAddress a in addr)
+					m.Bcc.Add(a);
 			}
 			if (header["From"] != null) {
 				addr = ParseAddressList(header["From"]);
-				m.From = new MailAddress(addr.Length > 0 ? addr[0] : "");
+				if (addr.Length > 0)
+					m.From = addr[0];
 			}
 			if (header["Sender"] != null) {
 				addr = ParseAddressList(header["Sender"]);
-				m.Sender = new MailAddress(addr.Length > 0 ? addr[0] : "");
+				if (addr.Length > 0)
+					m.Sender = addr[0];
 			}
 			if (header["Reply-to"] != null) {
 				addr = ParseAddressList(header["Reply-to"]);
-				foreach (string s in addr)
-					m.ReplyToList.Add(s);
+				foreach (MailAddress a in addr)
+					m.ReplyToList.Add(a);
 			}
 		}
 
@@ -323,7 +343,9 @@ namespace S22.Pop3 {
 						bytes = encoding.GetBytes(Util.QPDecode(p.body, encoding));
 						break;
 					case "base64":
-						bytes = Util.Base64Decode(p.body);
+						try {
+							bytes = Util.Base64Decode(p.body);
+						} catch {}
 						break;
 				}
 				/* Put the first MIME part that contains text into the Body fields of the

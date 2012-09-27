@@ -23,27 +23,6 @@ namespace S22.Pop3 {
 		}
 
 		/// <summary>
-		/// Splits a string into chunks of the specified number of
-		/// characters.
-		/// </summary>
-		/// <param name="str">Extension method for the String class.</param>
-		/// <param name="characters">The length of a chunk, measured in
-		/// characters.</param>
-		/// <returns>An array of string chunks</returns>
-		internal static string[] ToChunks(this string str, int characters) {
-			List<string> list = new List<string>();
-			while (str.Length > 0) {
-				int length = str.Length > characters ? characters :
-					str.Length;
-				string t = str.Substring(0, length);
-				str = str.Remove(0, length);
-				list.Add(t);
-			}
-			return list.ToArray();
-		}
-
-
-		/// <summary>
 		/// Decodes a string composed of one or several MIME 'encoded-words'.
 		/// </summary>
 		/// <param name="words">A string to composed of one or several MIME
