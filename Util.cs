@@ -33,7 +33,7 @@ namespace S22.Pop3 {
 		/// string</returns>
 		public static string DecodeWords(string words) {
 			MatchCollection matches = Regex.Matches(words,
-				@"(=\?[A-Za-z0-9\-]+\?[BbQq]\?[^\?]+\?=)");
+				@"(=\?[A-Za-z0-9\-_]+\?[BbQq]\?[^\?]+\?=)");
 			string decoded = String.Empty;
 			foreach (Match m in matches)
 				decoded = decoded + DecodeWord(m.ToString());
@@ -53,7 +53,7 @@ namespace S22.Pop3 {
 		/// to RFC 2047</remarks>
 		internal static string DecodeWord(string word) {
 			Match m = Regex.Match(word,
-					@"=\?([A-Za-z0-9\-]+)\?([BbQq])\?(.+)\?=");
+					@"=\?([A-Za-z0-9\-_]+)\?([BbQq])\?(.+)\?=");
 			if (!m.Success)
 				return word;
 			Encoding encoding = Util.GetEncoding(m.Groups[1].Value);

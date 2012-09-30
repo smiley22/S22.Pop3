@@ -386,8 +386,9 @@ namespace S22.Pop3 {
 				if (delete)
 					DeleteMessage(number);
 			}
-			return MessageReader.Read(builder.ToString(),
-				options == FetchOptions.HeadersOnly);
+			return options == FetchOptions.HeadersOnly ?
+				MessageBuilder.FromHeader(builder.ToString()) :
+				MessageBuilder.FromMIME822(builder.ToString());
 		}
 
 		/// <summary>

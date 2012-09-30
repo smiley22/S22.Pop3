@@ -42,10 +42,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AuthMethod.cs" />
+    <Compile Include="Bodypart.cs" />
+    <Compile Include="ContentDisposition.cs" />
+    <Compile Include="ContentTransferEncoding.cs" />
+    <Compile Include="ContentType.cs" />
     <Compile Include="FetchOptions.cs" />
+    <Compile Include="MessageBuilder.cs" />
     <Compile Include="MessageInfo.cs" />
     <Compile Include="Exceptions.cs" />
-    <Compile Include="MessageReader.cs" />
     <Compile Include="MIMEPart.cs" />
     <Compile Include="Pop3Client.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
